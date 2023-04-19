@@ -5,6 +5,7 @@ import Joi from "joi"
 import { MongoClient, ObjectId } from "mongodb"
 import bcrypt from "bcrypt"
 import { v4 } from "uuid"
+import dayjs from "dayjs"
 
 const app = express()
 
@@ -92,7 +93,7 @@ app.post("/nova-transacao/:type", async(req, res)=>{
     try{
         const authorize = await db.collection("sessoes").findOne({token})
         if(!authorize) return res.status(401).send("Usuário não encontrado!")
-        db.collection("transacao").insertOne({value, description, type, user:authorize.userId})
+        db.collection("transacao").insertOne({value, description, type, user:authorize.userId, date: Date.now()})
         console.log(authorize.userId)
         res.sendStatus(201)
     } catch(err){
@@ -104,6 +105,17 @@ app.get("/home", async(req, res)=>{
     const {authorization} = req.headers
     const token = authorization?.replace("Bearer ", "") 
     if(!token) return res.sendStatus(401)
+    try{
+        const authorize = await db.collection("sessoes").findOne({token})
+        if(!authorize) return res.sendStatus(401)
+        const user = await db.collection("cadastro").findOne({_id: authorize.userId}) 
+        const list = await db.collection("transacao").find({user:authorize.userId}).toArray()
+        list.sort((a, b)=> a.date - b.date)
+        list.map((e)=> e.date = dayjs(e.date).format("DD/MM") )
+        res.status(200).send({username:user.name, operations:list})
+    } catch(err){
+        res.status(500).send(err.message)
+    }
 })
 
 
