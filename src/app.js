@@ -81,25 +81,30 @@ app.post("/nova-transacao/:type", async(req, res)=>{
     const {type} = req.params
     const {authorization} = req.headers
     const token = authorization?.replace('Bearer ', '')
-    const validation = transationSchema.validate({value, description}, {abortEarly:false})
     if(!token) return res.sendStatus(401)
+    const validation = transationSchema.validate({value, description}, {abortEarly:false})
     if(validation.error){
         const errors = validation.error.details.map((detail)=>detail.message)
         return res.status(422).send(errors)
     }
     if(type!=="entrada"&&type!=="saida")return res.sendStatus(422)
+
     try{
-        const authorization = await db.collection("sessoes").findOne({token})
-        if(!authorization) return res.status(401).send("Usuário não encontrado!")
-        db.collection("transacao").insertOne({value, description, type, token})
-        console.log({value, description, type, token})
+        const authorize = await db.collection("sessoes").findOne({token})
+        if(!authorize) return res.status(401).send("Usuário não encontrado!")
+        db.collection("transacao").insertOne({value, description, type, user:authorize.userId})
+        console.log(authorize.userId)
         res.sendStatus(201)
     } catch(err){
         res.status(500).send(err.message)
     }
 })
 
-
+app.get("/home", async(req, res)=>{
+    const {authorization} = req.headers
+    const token = authorization?.replace("Bearer ", "") 
+    if(!token) return res.sendStatus(401)
+})
 
 
 
