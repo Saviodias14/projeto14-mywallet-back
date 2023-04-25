@@ -10,6 +10,7 @@ export async function transacao (req, res){
         const errors = validation.error.details.map((detail) => detail.message)
         return res.status(422).send(errors)
     }
+    
     if (type !== "entrada" && type !== "saida") return res.sendStatus(422)
 
     try {
